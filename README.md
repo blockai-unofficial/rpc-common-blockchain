@@ -15,7 +15,13 @@ var config = {
 
 var rpc = new RpcClient(config)
 
-var rpcCommonBlockchain = require('rpc-common-blockchain')({
+var commonBlockchain = require('rpc-common-blockchain')({
   rpc: rpc
 })
+
+commonBlockchain.Addresses.Transactions([
+  "n3PDRtKoHXHNt8FU17Uu9Te81AnKLa7oyU"
+], function (err, resp) {
+  console.log(resp)
+});
 ```
