@@ -3,7 +3,6 @@ module.exports = function (options) {
 
   var txHexToJSON = require('bitcoin-tx-hex-to-json')
   var bitcoin = require('bitcoinjs-lib')
-  var txToJson = require('./tx-to-json')
 
   var GetTranasactions = function (txids, callback) {
     function batchCall () {
@@ -164,7 +163,8 @@ module.exports = function (options) {
         var rawBlock = bitcoin.Block.fromHex(blockHex)
         var transactions = []
         rawBlock.transactions.forEach(function (tx) {
-          var txJSON = txToJson(tx)
+          var txJSON = txHexToJSON(tx.toHex())
+          txJSON.blockId = blockId
           transactions.push(txJSON)
         })
         block.transactions = transactions
