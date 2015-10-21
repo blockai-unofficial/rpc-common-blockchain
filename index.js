@@ -8,13 +8,17 @@ module.exports = function (options) {
   var GetTranasactions = function (txids, callback) {
     function batchCall () {
       txids.forEach(function (txid) {
-        rpc.getRawTransaction(txid)
+        rpc.getRawTransaction(txid, 1)
       })
     }
 
     rpc.batch(batchCall, function (err, rawtxs) {
       var txs = rawtxs.map(function (rawtx) {
-        return rawtx.result ? txHexToJSON(rawtx.result) : false
+        var tx = rawtx.result ? txHexToJSON(rawtx.result.hex) : {}
+        tx.blockhash = rawtx.result.blockhash
+        tx.blocktime = rawtx.result.blocktime
+        tx.confirmations = rawtx.result.confirmations
+        return tx
       })
       callback(err, txs)
     })
@@ -51,19 +55,36 @@ module.exports = function (options) {
     })
   }
 
-  var Propagate = function (txHex, callback) {
+  var PropagateTransaction = function (txHex, callback) {
     rpc.sendRawTransaction(txHex, function (err, res) {
       callback(err, res)
     })
   }
 
-  var Status = function () {}
+  var Status = function (txids, callback) {
+    function batchCall () {
+      txids.forEach(function (txid) {
+        rpc.getRawTransaction(txid, 1)
+      })
+    }
+
+    rpc.batch(batchCall, function (err, rawtxs) {
+      var txs = rawtxs.map(function (rawtx) {
+        return {
+          txid: rawtx.result.txid,
+          txId: rawtx.result.txid,
+          blockId: rawtx.result.blockhash
+        }
+      })
+      callback(err, txs)
+    })
+  }
 
   var Transactions = {
     Get: GetTranasactions,
     Latest: Latest,
     Outputs: Outputs,
-    Propagate: Propagate,
+    Propagate: PropagateTransaction,
     Status: Status
   }
 
@@ -94,8 +115,40 @@ module.exports = function (options) {
     })
   }
 
+  var Summary = function (addresses, callback) {
+    function batchCall () {
+      addresses.forEach(function (address) {
+        rpc.getReceivedByAddress(address, 0)
+      })
+    }
+
+    rpc.batch(batchCall, function (err, rawAddresses) {
+      var _addresses = rawAddresses.map(function (rawAddress, i) {
+        var address = {
+          balance: rawAddress.result,
+          address: addresses[i]
+        }
+        return address
+      })
+      callback(err, _addresses)
+    })
+  }
+
+  var AddressTransactions = function (addresses, callback) {
+    var address = addresses[0]
+    // rpc.importAddress(address, address, true, function (err, res) {
+    // console.log(err, res)
+    rpc.listTransactions(address, 10, 0, true, function (err, res) {
+      console.log(err, res)
+      callback(false, [[{}]])
+    })
+  // })
+  }
+
   var Addresses = {
-    Unspents: Unspents
+    Unspents: Unspents,
+    Summary: Summary,
+    Transactions: AddressTransactions
   }
 
   var GetBlocks = function (blockIds, callback) {
@@ -115,7 +168,7 @@ module.exports = function (options) {
           transactions.push(txJSON)
         })
         block.transactions = transactions
-        callback(err, block)
+        callback(err, [block])
       })
     })
   }
@@ -127,9 +180,36 @@ module.exports = function (options) {
     })
   }
 
+  var LatestBlock = function (callback) {
+    rpc.getBestBlockHash(function (err, res) {
+      var blockId = res.result
+      GetBlocks([blockId], function (err, blocks) {
+        callback(err, blocks[0])
+      })
+    })
+  }
+
+  var PropagateBlock = function (blockHex, callback) {
+    rpc.submitBlock(blockHex, function (err, res) {
+      callback(err, res)
+    })
+  }
+
+  var BlockTransactions = function (blockIds, callback) {
+    GetBlocks(blockIds, function (err, blocks) {
+      var transactions = blocks.map(function (block) {
+        return block.transactions
+      })
+      callback(err, transactions)
+    })
+  }
+
   var Blocks = {
     Get: GetBlocks,
-    GetBlockHash: GetBlockHash
+    GetBlockHash: GetBlockHash,
+    Latest: LatestBlock,
+    Propagate: PropagateBlock,
+    Transactions: BlockTransactions
   }
 
   return {
