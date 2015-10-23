@@ -15,6 +15,10 @@ module.exports = function (options) {
       var txs = rawtxs.map(function (rawtx) {
         var tx = rawtx.result ? txHexToJSON(rawtx.result.hex) : {}
         tx.blockhash = rawtx.result.blockhash
+        tx.blockId = rawtx.result.blockhash
+        tx.blockheight = rawtx.result.blockheight
+        tx.blockHeight = rawtx.result.blockheight
+        tx.blockTime = rawtx.result.blocktime
         tx.blocktime = rawtx.result.blocktime
         tx.confirmations = rawtx.result.confirmations
         return tx
@@ -160,11 +164,19 @@ module.exports = function (options) {
         block.blockHex = blockHex
         block.blockId = blockId
 
+        console.log(block)
+
         var rawBlock = bitcoin.Block.fromHex(blockHex)
         var transactions = []
         rawBlock.transactions.forEach(function (tx) {
           var txJSON = txHexToJSON(tx.toHex())
           txJSON.blockId = blockId
+          txJSON.blockhash = blockId
+          txJSON.blockheight = block.height
+          txJSON.blockHeight = block.height
+          txJSON.confirmations = block.confirmations
+          txJSON.blocktime = block.time
+          txJSON.blockTime = block.time
           transactions.push(txJSON)
         })
         block.transactions = transactions
