@@ -164,8 +164,6 @@ module.exports = function (options) {
         block.blockHex = blockHex
         block.blockId = blockId
 
-        console.log(block)
-
         var rawBlock = bitcoin.Block.fromHex(blockHex)
         var transactions = []
         rawBlock.transactions.forEach(function (tx) {
